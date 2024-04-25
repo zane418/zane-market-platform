@@ -1,0 +1,5 @@
+spring:
+  config:
+    name: zane-market-platform-app
+  profiles:
+    active: dev

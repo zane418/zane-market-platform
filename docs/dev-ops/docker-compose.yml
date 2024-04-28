@@ -1,0 +1,109 @@
+version: "3.0"
+services:
+  mysql:
+    image: mysql
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      #      - MYSQL_ROOT_PASSWORD=123456
+      - MYSQL_ROOT_PASSWORD=zane
+    volumes:
+      - /Users/ibona_28231/docker/mysql/mysql-data/:/docker/mysql
+      - /Users/ibona_28231/docker/mysql/init.sql:/docker/init.sql
+    command:
+      --default-authentication-plugin=mysql_native_password
+      --init-file /docker/init.sql
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+      --lower_case_table_names=1
+      --sql_mode="STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION"
+      --max_connections=2000
+      --max_allowed_packet=16M
+      --wait_timeout=28800
+      --sort_buffer_size=10M
+      --join_buffer_size=10M
+      --tmp_table_size=10M
+      --innodb_strict_mode=0
+    restart: always
+  #    networks:
+  #      - docker_net
+  nacos:
+    image: nacos/nacos-server
+    container_name: nacos
+    environment:
+      - MODE=standalone
+      - SPRING_DATASOURCE_PLATFORM=mysql
+        - MYSQL_SERVICE_HOST=mysql
+        - MYSQL_SERVICE_PORT=3306
+        - MYSQL_SERVICE_DB_NAME=nacos
+        - MYSQL_SERVICE_USER=root
+        - MYSQL_SERVICE_PASSWORD=zane
+    volumes:
+      - /Users/ibona_28231/docker/nacos/standalone-logs/:/home/nacos/logs
+    restart: always
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+      - "9849:9849"
+    #    networks:
+    #      - docker_net
+    command: >
+      sh -c ""
+  redis:
+    image: redis
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: always
+  seata-server:
+    image: seataio/seata-server
+    ports:
+      - "7091:7091"
+      - "8091:8091"
+    environment:
+      - STORE_MODE=db
+      # 以SEATA_IP作为host注册seata server
+      - SEATA_IP=seata_ip
+      - SEATA_PORT=8091
+    volumes:
+      - "/usr/share/zoneinfo/Asia/Shanghai:/etc/localtime"        #设置系统时区
+      - "/usr/share/zoneinfo/Asia/Shanghai:/etc/timezone"  #设置时区
+      # 假设我们通过docker cp命令把资源文件拷贝到相对路径`./seata-server/resources`中
+      # 如有问题，请阅读上面的[注意事项]以及[使用自定义配置文件]
+      - "/Users/ibona_28231/docker/seata-server/resources:/seata-server/resources"
+    restart: always
+  xxl-job-admin:
+    restart: always
+    image: xuxueli/xxl-job-admin:2.3.1
+    container_name: xxl-job-admin
+    volumes:
+      # 日志目录映射到主机目录
+      - /Users/ibona_28231/docker/xxl-job-admin/data/logs:/data/applogs
+    ports:
+      - "18080:8080"
+    environment:
+      PARAMS:
+        '--spring.datasource.url=jdbc:mysql://192.168.1.36:3306/xxl_job?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true&serverTimezone=Asia/Shanghai
+         --spring.datasource.username=root
+         --spring.datasource.password=zane'
+
+  emqx:
+    image: emqx/emqx:5.6.0
+    container_name: emqx
+    #    environment:
+    #      - "EMQX_NODE_NAME=zane01"
+    #      - "EMQX_CLUSTER__DISCOVERY_STRATEGY=static"
+    #      - "EMQX_CLUSTER__STATIC__SEEDS=[zane01]"
+    ports:
+      - "1883:1883"
+      - "8083:8083"
+      - "8084:8084"
+      - "8883:8883"
+      - "18083:18083"
+    volumes:
+      - /Users/ibona_28231/docker/emqx/emqx_data:/opt/emqx/data
+    restart: always
+
+
+
